@@ -6,147 +6,68 @@ const ADRESSE = "https://ladestandertilelbil.dk/ladepriser";
 function danskTid() {
     return new Intl.DateTimeFormat("da-DK", {
         timeZone: "Europe/Copenhagen",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit"
     }).format(new Date());
+}
+
+async function laesTabel(page) {
+    return page.locator("table tbody tr").evaluateAll(rows => {
+        function linjer(t){return (t||"").split(/\n+/).map(l=>l.trim()).filter(Boolean);}
+        function foersteLinje(t){return linjer(t)[0]||"";}
+        function prisSomTal(t){
+            const f=foersteLinje(t);
+            if(!f||f==="-")return null;
+            const m=f.match(/(\d+(?:[.,]\d+)?)/);
+            if(!m)return null;
+            return Number(m[1].replace(",","."));
+        }
+        function maerkat(t){
+            const ok=["BILLIGST","BILLIG","MIDDEL","DYR","DYREST"];
+            return linjer(t).find(l=>ok.includes(l.toUpperCase()))||null;
+        }
+        return rows.map(row=>{
+            const c=[...row.querySelectorAll("td")];
+            const u=c[0]?.innerText||"", a=c[1]?.innerText||"",
+                  d=c[2]?.innerText||"", ly=c[3]?.innerText||"";
+            return {
+                udbyder:foersteLinje(u),
+                ac:prisSomTal(a), dc:prisSomTal(d), lyn:prisSomTal(ly),
+                vurdering:maerkat(ly)||maerkat(d)||maerkat(a)||maerkat(u),
+                abonnement:foersteLinje(c[4]?.innerText),
+                kilde:c[5]?.querySelector("a")?.href||""
+            };
+        }).filter(p=>p.udbyder&&p.udbyder!=="Loading...");
+    });
 }
 
 async function hentPriser() {
     console.log("Starter browseren...");
-
-    const browser = await chromium.launch({
-        headless: true
-    });
-
-    const page = await browser.newPage({
-        locale: "da-DK"
-    });
+    const browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage({ locale: "da-DK" });
 
     console.log("Åbner siden med ladepriser...");
+    await page.goto(ADRESSE, { waitUntil: "networkidle", timeout: 60000 });
 
-    await page.goto(ADRESSE, {
-        waitUntil: "domcontentloaded",
-        timeout: 60000
-    });
-
-    await page.waitForTimeout(8000);
-
-    const opdaterKnap = page.getByRole("button", {
-        name: /opdater/i
-    });
-
+    const opdaterKnap = page.getByRole("button", { name: /opdater/i });
     if (await opdaterKnap.count()) {
         console.log("Trykker på Opdater...");
         await opdaterKnap.first().click().catch(() => {});
-        await page.waitForTimeout(8000);
     }
 
-    const priser = await page
-        .locator("table tbody tr")
-        .evaluateAll(rows => {
-            function linjer(tekst) {
-                return (tekst || "")
-                    .split(/\n+/)
-                    .map(linje => linje.trim())
-                    .filter(Boolean);
-            }
+    let priser = [];
+    for (let forsoeg = 1; forsoeg <= 6; forsoeg++) {
+        await page.waitForTimeout(5000);
+        priser = await laesTabel(page);
+        console.log("Forsøg " + forsoeg + ": " + priser.length + " udbydere fundet.");
+        if (priser.length >= 3) break;
+    }
 
-            function foersteLinje(tekst) {
-                return linjer(tekst)[0] || "";
-            }
-
-            function prisSomTal(tekst) {
-                const første = foersteLinje(tekst);
-
-                if (!første || første === "-") {
-                    return null;
-                }
-
-                const match = første.match(
-                    /(\d+(?:[.,]\d+)?)/
-                );
-
-                if (!match) {
-                    return null;
-                }
-
-                return Number(
-                    match[1].replace(",", ".")
-                );
-            }
-
-            function maerkat(tekst) {
-                const tilladte = [
-                    "BILLIGST",
-                    "BILLIG",
-                    "MIDDEL",
-                    "DYR",
-                    "DYREST"
-                ];
-
-                return linjer(tekst).find(linje =>
-                    tilladte.includes(
-                        linje.toUpperCase()
-                    )
-                ) || null;
-            }
-
-            return rows
-                .map(row => {
-                    const celler =
-                        [...row.querySelectorAll("td")];
-
-                    const udbyderTekst =
-                        celler[0]?.innerText || "";
-
-                    const acTekst =
-                        celler[1]?.innerText || "";
-
-                    const dcTekst =
-                        celler[2]?.innerText || "";
-
-                    const lynTekst =
-                        celler[3]?.innerText || "";
-
-                    return {
-                        udbyder:
-                            foersteLinje(udbyderTekst),
-
-                        ac:
-                            prisSomTal(acTekst),
-
-                        dc:
-                            prisSomTal(dcTekst),
-
-                        lyn:
-                            prisSomTal(lynTekst),
-
-                        vurdering:
-                            maerkat(lynTekst) ||
-                            maerkat(dcTekst) ||
-                            maerkat(acTekst) ||
-                            maerkat(udbyderTekst),
-
-                        abonnement:
-                            foersteLinje(
-                                celler[4]?.innerText
-                            ),
-
-                        kilde:
-                            celler[5]
-                                ?.querySelector("a")
-                                ?.href || ""
-                    };
-                })
-                .filter(pris =>
-                    pris.udbyder &&
-                    pris.udbyder !== "Loading..."
-                );
-        });
+    if (priser.length < 3) {
+        await browser.close();
+        throw new Error("Kunne ikke læse priser fra kilden (fik " + priser.length +
+            " rækker). Beholder den eksisterende ladepriser.json.");
+    }
 
     const resultat = {
         hentetUTC: new Date().toISOString(),
@@ -155,19 +76,8 @@ async function hentPriser() {
         antalUdbydere: priser.length,
         priser
     };
-
-    fs.writeFileSync(
-        "ladepriser.json",
-        JSON.stringify(resultat, null, 2),
-        "utf8"
-    );
-
-    console.log("");
-    console.log("Færdig.");
-    console.log("Antal udbydere:", priser.length);
-    console.log("Dansk tidspunkt:", resultat.hentetDanskTid);
-    console.log("Filen ladepriser.json er opdateret.");
-
+    fs.writeFileSync("ladepriser.json", JSON.stringify(resultat, null, 2), "utf8");
+    console.log("\nFærdig. Antal udbydere:", priser.length, "| Tid:", resultat.hentetDanskTid);
     await browser.close();
 }
 

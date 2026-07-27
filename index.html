@@ -4,6 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>LadepriserDK · Billigste ladestandere nær dig</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#171C24">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="LadepriserDK">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#171C24">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ladepriser">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -29,6 +43,7 @@
     background:var(--bg);color:var(--text);
     font-family:var(--font-body);font-size:15px;line-height:1.45;
     display:flex;flex-direction:column;
+    height:100vh;height:100dvh;overflow:hidden;
   }
   /* ---------- Top bar ---------- */
   header{
@@ -51,7 +66,8 @@
   .acdc button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
   /* ---------- Map ---------- */
-  #mapwrap{position:relative;height:52vh;min-height:300px}
+  #mapwrap{position:relative;height:44vh;height:44dvh;min-height:280px;flex:none}
+  aside{flex:1;display:flex;flex-direction:column;min-height:0}
   #map{height:100%;background:#10151C}
   .leaflet-container{font-family:var(--font-body)}
   /* radius control overlay */
@@ -72,6 +88,13 @@
     border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px;
   }
   .locbtn:hover{background:var(--panel-2)}
+  .montabtn{
+    position:absolute;top:52px;right:12px;z-index:1000;
+    background:var(--accent);border:1px solid var(--accent);color:#0D141C;
+    border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;
+    text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.35);
+  }
+  .montabtn:hover{filter:brightness(1.05)}
 
   /* price tag markers */
   .pricetag{background:none;border:none}
@@ -94,10 +117,17 @@
   .pop .sub{color:var(--muted);font-size:12px;margin-bottom:6px}
   .pop .price{font-family:var(--font-display);font-weight:700;font-size:18px}
   .pop .price small{font-weight:500;font-size:11px;color:var(--muted)}
+  .pop .meta{font-size:12px;color:var(--text);margin-top:5px;opacity:.85}
   .pop .navlink{
     display:block;margin-top:9px;text-align:center;text-decoration:none;
     background:var(--accent);color:#0D141C;font-weight:600;font-size:13px;
     border-radius:9px;padding:8px 10px;
+  }
+  .pop .poprow{display:flex;gap:6px;margin-top:6px}
+  .pop .popbtn{
+    flex:1;text-align:center;text-decoration:none;font-size:12px;font-weight:600;
+    background:var(--panel-2);color:var(--text);border:1px solid var(--line);
+    border-radius:9px;padding:7px 6px;white-space:nowrap;
   }
 
   /* ---------- List ---------- */
@@ -182,6 +212,7 @@
 <div id="mapwrap">
   <div id="map"></div>
   <button class="locbtn" id="btnLocate">📍 Min position</button>
+  <a class="montabtn" id="btnMonta" target="_blank" rel="noopener" href="https://map.monta.com/">⚡ Monta-kort · AC-priser & ledige</a>
   <div class="radiusbox">
     <label for="radius">Radius</label>
     <input type="range" id="radius" min="2" max="50" step="1" value="10">
@@ -387,6 +418,36 @@ function isDC(conns){
 function maxKW(conns){
   return Math.max(0, ...(conns || []).map(c => c.PowerKW || 0));
 }
+/* Kort oversigt over stiktyper, fx "CCS · Type 2" */
+function stikOversigt(conns){
+  const navne = new Set();
+  for (const c of (conns || [])){
+    const t = (c.ConnectionType && c.ConnectionType.Title) || "";
+    if (/ccs/i.test(t)) navne.add("CCS");
+    else if (/chademo/i.test(t)) navne.add("CHAdeMO");
+    else if (/type\s*2|mennekes/i.test(t)) navne.add("Type 2");
+    else if (/type\s*1/i.test(t)) navne.add("Type 1");
+    else if (/tesla/i.test(t)) navne.add("Tesla");
+    else if (t) navne.add(t.split("(")[0].trim());
+  }
+  return [...navne].slice(0, 4).join(" · ");
+}
+/* Kun de store operatører får en app-knap (efter Davids valg) */
+const OPERATOR_APPS = {
+  "Tesla":    { ios:"https://apps.apple.com/dk/app/tesla/id582007913", android:"https://play.google.com/store/apps/details?id=com.teslamotors.tesla" },
+  "Clever":   { ios:"https://apps.apple.com/dk/app/clever/id916993791", android:"https://play.google.com/store/apps/details?id=dk.clever.app" },
+  "E.ON":     { ios:"https://apps.apple.com/dk/app/e-on-drive/id1487871524", android:"https://play.google.com/store/apps/details?id=com.eon.drive" },
+  "OK":       { ios:"https://apps.apple.com/dk/app/ok-app/id1043816728", android:"https://play.google.com/store/apps/details?id=dk.ok.app" },
+  "Circle K": { ios:"https://apps.apple.com/dk/app/circle-k-danmark/id1214258377", android:"https://play.google.com/store/apps/details?id=com.circlek.dk" },
+  "IONITY":   { ios:"https://apps.apple.com/dk/app/ionity/id1551448692", android:"https://play.google.com/store/apps/details?id=com.cleevio.ionity.android.app" },
+  "Spirii":   { ios:"https://apps.apple.com/dk/app/spirii-go/id1493532817", android:"https://play.google.com/store/apps/details?id=com.spirii.spirii" }
+};
+function appLink(opName){
+  const a = OPERATOR_APPS[opName];
+  if (!a) return "";
+  const android = /android/i.test(navigator.userAgent);
+  return android ? a.android : a.ios;
+}
 
 /* ---------- Datahentning (Open Charge Map) ---------- */
 function scheduleFetch(){
@@ -416,6 +477,8 @@ async function fetchPois(){
         addr: [p.AddressInfo.AddressLine1, p.AddressInfo.Town].filter(Boolean).join(", "),
         opTitle: op ? op.name : (opTitleRaw || "Ukendt operatør"),
         op, dc, kw: maxKW(p.Connections),
+        stik: stikOversigt(p.Connections),
+        antalStik: (p.Connections || []).reduce((n,c) => n + (c.Quantity || 1), 0),
         dist: haversineKm(center, pos),
       };
     });
@@ -449,6 +512,7 @@ function sampleData(){
     const dc = Math.random() > 0.35;
     out.push({ pos, title: opName + " " + (100+i), addr: "Eksempelvej " + (i+1),
                opTitle: opName, op, dc, kw: dc ? [50,150,300][i%3] : [11,22][i%2],
+               stik: dc ? "CCS" : "Type 2", antalStik: [2,4,6][i%3],
                dist: d });
   }
   return out;
@@ -509,14 +573,27 @@ function render(){
       iconSize: null, iconAnchor: [22, 30]
     });
     const m = L.marker(p.pos, { icon }).addTo(map);
+    const appHref = appLink(p.op ? p.op.name : "");
     m.bindPopup(
       '<div class="pop"><h4>' + p.title + '</h4>' +
       '<div class="sub">' + p.opTitle + (p.addr ? " · " + p.addr : "") + '</div>' +
       '<div class="price">' + fmt(price) + ' <small>kr/kWh · ' +
         (p.dc ? "DC" : "AC") + (p.kw ? " · " + Math.round(p.kw) + " kW" : "") +
         ' · ' + p.dist.toFixed(1).replace(".", ",") + ' km</small></div>' +
+      ((p.stik || p.antalStik) ?
+        '<div class="meta">' +
+          (p.stik ? p.stik : "") +
+          (p.antalStik ? (p.stik ? " · " : "") + p.antalStik + " stik" : "") +
+        '</div>' : "") +
       '<a class="navlink" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' +
-        p.pos[0] + ',' + p.pos[1] + '">🧭 Start navigation</a></div>'
+        p.pos[0] + ',' + p.pos[1] + '">🧭 Start navigation</a>' +
+      '<div class="poprow">' +
+        '<a class="popbtn" target="_blank" rel="noopener" href="https://www.google.com/maps/@?api=1&map_action=map&center=' +
+          p.pos[0] + ',' + p.pos[1] + '&zoom=19&basemap=satellite">🛰️ Se luftfoto</a>' +
+        '<a class="popbtn" target="_blank" rel="noopener" href="https://map.monta.com/?lat=' +
+          p.pos[0] + '&lng=' + p.pos[1] + '&zoom=17">⚡ Monta</a>' +
+        (appHref ? '<a class="popbtn" target="_blank" rel="noopener" href="' + appHref + '">📱 Åbn ' + p.op.name + '</a>' : "") +
+      '</div></div>'
     );
     return m;
   });
