@@ -111,7 +111,6 @@
   .pop .price{font-family:var(--font-display);font-weight:700;font-size:18px}
   .pop .price small{font-weight:500;font-size:11px;color:var(--muted)}
   .pop .meta{font-size:12px;color:var(--text);margin-top:5px;opacity:.85}
-  .pop .abon{font-size:11px;margin-top:4px;color:var(--muted)}
   .pop .navlink{
     display:block;margin-top:9px;text-align:center;text-decoration:none;
     background:var(--accent);color:#0D141C;font-weight:600;font-size:13px;
@@ -426,17 +425,6 @@ function stikOversigt(conns){
   }
   return [...navne].slice(0, 4).join(" · ");
 }
-/* Læser abonnements-status fra pris-kilden og gør den til en tydelig label.
-   Kilden (ladestandertilelbil.dk) skriver typisk "Ja"/"Nej" i abonnement-feltet. */
-function abonnementTekst(op){
-  if (!op) return "";
-  const a = (op.abonnement || "").toString().trim().toLowerCase();
-  if (!a) return "";
-  if (/^(nej|no|uden|nem|drop)/.test(a)) return "✓ uden abonnement";
-  if (/^(ja|yes|med|kr\u00e6ver)/.test(a)) return "⚠ kræver abonnement";
-  return a; // ukendt format — vis råt så det ikke skjules
-}
-
 /* ---------- Datahentning (Open Charge Map) ---------- */
 function scheduleFetch(){
   clearTimeout(fetchTimer);
@@ -561,15 +549,12 @@ function render(){
       iconSize: null, iconAnchor: [22, 30]
     });
     const m = L.marker(p.pos, { icon }).addTo(map);
-    const abon = abonnementTekst(p.op);
-    const kilde = (p.op && p.op.kilde) ? p.op.kilde : "";
     m.bindPopup(
       '<div class="pop"><h4>' + p.title + '</h4>' +
       '<div class="sub">' + p.opTitle + (p.addr ? " · " + p.addr : "") + '</div>' +
       '<div class="price">' + fmt(price) + ' <small>kr/kWh · ' +
         (p.dc ? "DC" : "AC") + (p.kw ? " · " + Math.round(p.kw) + " kW" : "") +
         ' · ' + p.dist.toFixed(1).replace(".", ",") + ' km</small></div>' +
-      (price != null && abon ? '<div class="abon">' + abon + '</div>' : "") +
       ((p.stik || p.antalStik) ?
         '<div class="meta">' +
           (p.stik ? p.stik : "") +
@@ -580,7 +565,6 @@ function render(){
       '<div class="poprow">' +
         '<a class="popbtn" target="_blank" rel="noopener" href="https://www.google.com/maps/@?api=1&map_action=map&center=' +
           p.pos[0] + ',' + p.pos[1] + '&zoom=19&basemap=satellite">🛰️ Se luftfoto</a>' +
-        (kilde ? '<a class="popbtn" target="_blank" rel="noopener" href="' + kilde + '">💰 Prisdetaljer</a>' : "") +
       '</div></div>'
     );
     return m;
@@ -610,12 +594,13 @@ function render(){
     '</div>';
   }).join("");
 
-  /* klik på række → flyv til markør */
+  /* klik på række → hop til markør (uden animation, så det ikke hakker) */
   list.querySelectorAll(".row").forEach(row => {
     row.addEventListener("click", () => {
       const p = shown[+row.dataset.i];
-      map.flyTo(p.pos, Math.max(map.getZoom(), 13));
       const m = markers[+row.dataset.i];
+      const targetZoom = Math.max(map.getZoom(), 14);
+      map.setView(p.pos, targetZoom, { animate: false });
       if (m) m.openPopup();
     });
   });
