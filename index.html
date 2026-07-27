@@ -51,43 +51,59 @@
     padding:10px 14px;border-bottom:1px solid var(--line);
     background:var(--panel);position:relative;z-index:1200;
   }
-  .logo{font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:.02em}
+  .logo{font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:.02em}
   .logo .bolt{color:var(--accent)}
   .updated{font-size:11px;color:var(--muted);margin-top:1px}
-  .spacer{flex:1}
   /* AC/DC toggle */
   .acdc{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:3px}
   .acdc button{
     border:0;background:transparent;color:var(--muted);cursor:pointer;
-    font-family:var(--font-display);font-weight:600;font-size:14px;letter-spacing:.04em;
-    padding:5px 14px;border-radius:999px;transition:background .15s,color .15s;
+    font-family:var(--font-display);font-weight:600;font-size:13px;letter-spacing:.04em;
+    padding:5px 12px;border-radius:999px;transition:background .15s,color .15s;
   }
   .acdc button.active{background:var(--accent);color:#0D141C}
   .acdc button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
   /* ---------- Map ---------- */
-  #mapwrap{position:relative;height:44vh;height:44dvh;min-height:280px;flex:none}
+  #mapwrap{position:relative;height:40vh;height:40dvh;min-height:250px;flex:none}
   aside{flex:1;display:flex;flex-direction:column;min-height:0}
   #map{height:100%;background:#10151C}
   .leaflet-container{font-family:var(--font-body)}
-  /* radius control overlay */
-  .radiusbox{
-    position:absolute;left:12px;right:12px;bottom:12px;z-index:1000;
-    background:rgba(31,38,48,.92);backdrop-filter:blur(6px);
-    border:1px solid var(--line);border-radius:var(--radius);
-    padding:10px 14px;display:flex;align-items:center;gap:12px;
-  }
-  .radiusbox label{font-size:12px;color:var(--muted);white-space:nowrap}
-  .radiusbox output{
-    font-family:var(--font-display);font-weight:700;font-size:16px;min-width:52px;text-align:right;
-  }
-  input[type=range]{flex:1;accent-color:var(--accent);height:22px}
+  /* diskret sigtekorn til Min position */
   .locbtn{
     position:absolute;top:12px;right:12px;z-index:1000;
+    display:flex;align-items:center;justify-content:center;
+    width:40px;height:40px;
     background:var(--panel);border:1px solid var(--line);color:var(--text);
-    border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px;
+    border-radius:10px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.35);
   }
-  .locbtn:hover{background:var(--panel-2)}
+  .locbtn:hover{background:var(--panel-2);color:var(--accent)}
+
+  /* ---------- Radius-bjælke (under kortet) ---------- */
+  .radiusbar{
+    flex:none;display:flex;align-items:center;gap:12px;
+    padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line);
+  }
+  .radiusbar label{font-size:12px;color:var(--muted);white-space:nowrap}
+  .radiusbar output{
+    font-family:var(--font-display);font-weight:700;font-size:15px;min-width:52px;text-align:right;
+  }
+  input[type=range]{flex:1;accent-color:var(--accent);height:22px}
+
+  /* ---------- Kontrolbjælke ---------- */
+  .controlbar{
+    flex:none;display:flex;align-items:center;gap:10px;
+    padding:9px 14px;background:var(--panel);border-bottom:1px solid var(--line);
+    position:relative;z-index:1100;
+  }
+  .cb-title{flex:1;min-width:0}
+  .gearbtn{
+    flex:none;width:38px;height:38px;font-size:17px;line-height:1;
+    background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
+    cursor:pointer;transition:background .15s;
+  }
+  .gearbtn:hover{background:var(--line)}
+  .gearbtn[aria-expanded="true"]{border-color:var(--accent)}
 
   /* price tag markers */
   .pricetag{background:none;border:none}
@@ -158,16 +174,10 @@
     border-radius:10px;padding:8px 12px;margin-bottom:10px;
   }
   .notice b{color:var(--amber)}
-  /* favoritter */
-  .favbtn{
-    background:var(--panel-2);color:var(--text);border:1px solid var(--line);
-    border-radius:10px;padding:7px 12px;font-size:13px;cursor:pointer;white-space:nowrap;
-  }
-  .favbtn.on{border-color:var(--accent);color:var(--accent)}
-  .favbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .favpanel{
-    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-    padding:12px;margin-bottom:10px;
+  /* favoritter / indstillinger-panel */
+  .gearpanel{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px;margin-bottom:12px;
   }
   .favhint{font-size:12px;color:var(--muted);margin-bottom:10px}
   .favchips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
@@ -193,40 +203,52 @@
   .hideunknown input{accent-color:var(--accent);width:15px;height:15px}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
   @media (min-width:900px){
-    body{flex-direction:row}
-    #mapwrap{height:100vh;flex:1}
-    aside{width:420px;display:flex;flex-direction:column;border-left:1px solid var(--line)}
-    aside header{border-bottom:1px solid var(--line)}
-    main{flex:1}
+    #mapwrap{height:52vh;height:52dvh}
+    .radiusbar,.controlbar,aside{max-width:820px;width:100%;margin:0 auto}
   }
 </style>
 </head>
 <body>
 <div id="mapwrap">
   <div id="map"></div>
-  <button class="locbtn" id="btnLocate">📍 Min position</button>
-  <div class="radiusbox">
-    <label for="radius">Radius</label>
-    <input type="range" id="radius" min="2" max="50" step="1" value="10">
-    <output id="radiusOut">10 km</output>
+  <button class="locbtn" id="btnLocate" aria-label="Min position" title="Min position">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="7"/><line x1="12" y1="1" x2="12" y2="5"/>
+      <line x1="12" y1="19" x2="12" y2="23"/><line x1="1" y1="12" x2="5" y2="12"/>
+      <line x1="19" y1="12" x2="23" y2="12"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+    </svg>
+  </button>
+</div>
+
+<div class="radiusbar">
+  <label for="radius">Radius</label>
+  <input type="range" id="radius" min="2" max="50" step="1" value="10">
+  <output id="radiusOut">10 km</output>
+</div>
+
+<div class="controlbar">
+  <div class="cb-title">
+    <div class="logo"><span class="bolt">⚡</span> LadepriserDK</div>
+    <div class="updated" id="updated">Henter priser …</div>
   </div>
+  <div class="acdc" role="tablist" aria-label="Ladetype">
+    <button id="btnDC" class="active" role="tab" aria-selected="true">DC lyn</button>
+    <button id="btnAC" role="tab" aria-selected="false">AC</button>
+  </div>
+  <button id="gearBtn" class="gearbtn" aria-expanded="false" aria-label="Indstillinger" title="Indstillinger">⚙️</button>
 </div>
 
 <aside>
-  <header>
-    <div>
-      <div class="logo"><span class="bolt">⚡</span> LadepriserDK</div>
-      <div class="updated" id="updated">Henter priser …</div>
-    </div>
-    <div class="spacer"></div>
-    <div class="acdc" role="tablist" aria-label="Ladetype">
-      <button id="btnDC" class="active" role="tab" aria-selected="true">DC lyn</button>
-      <button id="btnAC" role="tab" aria-selected="false">AC</button>
-    </div>
-  </header>
-
   <main>
     <div class="notice" id="dataNotice" hidden></div>
+    <div class="gearpanel" id="gearPanel" hidden>
+      <div class="favhint">Vælg favorit-udbydere i prioriteret rækkefølge – tallet viser rækkefølgen, og kun de valgte vises. Tryk igen for at fjerne.</div>
+      <div class="favchips" id="favChips"></div>
+      <label class="hideunknown">
+        <input type="checkbox" id="hideUnknown"> Vis ikke ukendte
+      </label>
+      <button id="favClear" class="favclear">Nulstil · vis alle</button>
+    </div>
     <div class="listhead">
       <h2>Ladere i området</h2>
       <span class="count" id="count"></span>
@@ -236,15 +258,6 @@
         <option value="dist">Afstand · nærmeste først</option>
         <option value="op">Operatør · A–Å</option>
       </select>
-      <button id="favBtn" class="favbtn" aria-expanded="false">★ Alle</button>
-    </div>
-    <div class="favpanel" id="favPanel" hidden>
-      <div class="favhint">Tryk på udbyderne i den rækkefølge, du prioriterer dem – tallet viser rækkefølgen, og kun de valgte vises. Tryk igen for at fjerne.</div>
-      <div class="favchips" id="favChips"></div>
-      <label class="hideunknown">
-        <input type="checkbox" id="hideUnknown"> Vis ikke ukendte
-      </label>
-      <button id="favClear" class="favclear">Nulstil · vis alle</button>
     </div>
     <div id="list"><div class="loading">Henter ladestandere …</div></div>
   </main>
@@ -625,12 +638,12 @@ function setMode(m){
   render();
 }
 document.getElementById("sort").addEventListener("change", render);
-document.getElementById("hideUnknown").addEventListener("change", render);
+document.getElementById("hideUnknown").addEventListener("change", () => { buildFavChips(); render(); });
 document.getElementById("btnLocate").addEventListener("click", locate);
 
-/* ---------- Favoritter ---------- */
-const favBtn = document.getElementById("favBtn");
-const favPanel = document.getElementById("favPanel");
+/* ---------- Indstillinger (tandhjul) ---------- */
+const gearBtn = document.getElementById("gearBtn");
+const gearPanel = document.getElementById("gearPanel");
 
 function operatorNames(){
   return [...new Set(Object.values(PRICES).map(o => o.name))]
@@ -645,8 +658,9 @@ function buildFavChips(){
   document.querySelectorAll(".favchip").forEach(chip => {
     chip.addEventListener("click", () => toggleFav(chip.dataset.op));
   });
-  favBtn.textContent = favs.length ? "★ " + favs.length + " valgt" : "★ Alle";
-  favBtn.classList.toggle("on", favs.length > 0);
+  // markér tandhjulet når et filter er aktivt
+  const aktiv = favs.length > 0 || document.getElementById("hideUnknown").checked;
+  gearBtn.textContent = aktiv ? "⚙️•" : "⚙️";
 }
 function toggleFav(name){
   const i = favs.indexOf(name);
@@ -654,13 +668,14 @@ function toggleFav(name){
   buildFavChips();
   render();
 }
-favBtn.addEventListener("click", () => {
-  const open = favPanel.hidden;
-  favPanel.hidden = !open;
-  favBtn.setAttribute("aria-expanded", open);
+gearBtn.addEventListener("click", () => {
+  const open = gearPanel.hidden;
+  gearPanel.hidden = !open;
+  gearBtn.setAttribute("aria-expanded", open);
 });
 document.getElementById("favClear").addEventListener("click", () => {
   favs = [];
+  document.getElementById("hideUnknown").checked = false;
   buildFavChips();
   render();
 });
