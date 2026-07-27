@@ -358,10 +358,21 @@ async function loadPrices(){
     }
     PRICES = buildPriceIndex(data.priser);
     const fuld = data.hentetDanskTid || new Date(data.hentetUTC).toLocaleString("da-DK");
-    // kort tid til bjælken: tag kun klokkeslættet (HH.MM) hvis muligt
+    // kort tid til bjælken: find tidsdelen (efter komma) og tag HH.MM
     let kort = fuld;
-    const m = fuld.match(/(\d{1,2}[.:]\d{2})(?![.:]?\d)/);
-    if (m) kort = "Opdateret " + m[1].replace(":", ".").slice(0,5);
+    // dansk format: "27.07.2026, 17.02.08" → tidsdel er "17.02.08"
+    const tidsdel = (fuld.split(",").pop() || "").trim();
+    const t = tidsdel.match(/^(\d{1,2})[.:](\d{2})/);
+    if (t){
+      kort = "Opdateret " + t[1].padStart(2, "0") + "." + t[2];
+    } else {
+      // fallback: brug UTC-tidspunktet omregnet til dansk tid
+      try {
+        kort = "Opdateret " + new Date(data.hentetUTC).toLocaleTimeString("da-DK", {
+          timeZone: "Europe/Copenhagen", hour: "2-digit", minute: "2-digit"
+        });
+      } catch (e) { /* behold fuld */ }
+    }
     updated.textContent = kort;
     const uf = document.getElementById("updatedFull");
     if (uf) uf.textContent = "Priser hentet " + fuld;
