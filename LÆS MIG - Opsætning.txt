@@ -1,0 +1,74 @@
+LADEPRISERDK – AUTOMATISK OPDATERING I SKYEN
+=============================================
+
+Det her gør din PC overflødig: priserne hentes automatisk hver morgen
+i skyen (GitHub), og telefonen henter bare den friske fil. Ingen .bat,
+ingen server.js, ingen manuel indtastning.
+
+Filerne i denne mappe:
+  - index.html            (selve appen – uændret bortset fra statuslinjen)
+  - hent-ladepriser.js    (dit scraper-script – nu kørt af GitHub i stedet for din PC)
+  - ladepriser.json       (startpriser, så appen virker med det samme)
+  - package.json          (fortæller GitHub at Playwright skal installeres)
+  - .github/workflows/opdater-priser.yml   (robotten der kører hver morgen)
+
+
+SÅDAN SÆTTER DU DET OP (ca. 10 minutter, engangsopgave)
+--------------------------------------------------------
+
+1. Opret en gratis GitHub-konto på https://github.com hvis du ikke har en.
+
+2. Opret et nyt repository:
+   - Klik "+" øverst til højre → "New repository"
+   - Navn: fx  ladepriserdk
+   - Vælg "Public"  (Pages er gratis for offentlige repos)
+   - Klik "Create repository"
+
+3. Læg filerne op:
+   - På repo-siden: klik "uploading an existing file"
+   - Træk ALLE filer OG mappen .github ind
+     (nemmest: marker alt i denne mappe og træk det ind samlet)
+   - Klik "Commit changes"
+
+4. Tænd for GitHub Pages (så siden bliver en rigtig hjemmeside):
+   - Gå til fanen "Settings" → i venstremenuen "Pages"
+   - Under "Build and deployment" → "Source": vælg "GitHub Actions"
+
+5. Giv robotten lov til at skrive:
+   - Fanen "Settings" → "Actions" → "General"
+   - Rul ned til "Workflow permissions"
+   - Vælg "Read and write permissions" → "Save"
+
+6. Start robotten første gang manuelt:
+   - Fanen "Actions" → vælg "Opdater ladepriser" i venstresiden
+   - Klik "Run workflow" → "Run workflow"
+   - Vent 2-3 minutter. Grønt flueben = færdig.
+
+7. Find din app-adresse:
+   - Fanen "Settings" → "Pages"
+   - Øverst står adressen, fx:
+       https://ditbrugernavn.github.io/ladepriserdk/
+   - Åbn den på telefonen og læg den på hjemmeskærmen.
+
+
+DEREFTER
+--------
+Robotten kører HELT AF SIG SELV hver morgen kl. ca. 07:15 dansk tid,
+henter friske priser og opdaterer appen. Du behøver aldrig røre den igen.
+
+Vil du tjekke, at den kører: fanen "Actions" viser en liste med grønne
+flueben – ét for hver dag.
+
+Statuslinjen øverst i appen viser "Priser hentet [dato/tid]", så du altid
+kan se, hvor friske tallene er.
+
+
+HVIS NOGET DRILLER
+------------------
+- Appen viser "Reservepriser": så kunne ladepriser.json ikke hentes endnu.
+  Det retter sig, når robotten har kørt mindst én gang (punkt 6).
+- Robotten fejler (rødt kryds i Actions): klik ind på kørslen og se loggen.
+  Oftest er det punkt 5 (skriverettigheder), der mangler.
+- Kilden ladestandertilelbil.dk kan ændre sit tabel-layout en dag. Sker det,
+  henter scriptet tomt, og appen falder tilbage til de sidst kendte priser.
+  Så skal hent-ladepriser.js justeres – sig til, hvis det sker.

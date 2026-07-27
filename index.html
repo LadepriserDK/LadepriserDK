@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>LadepriserDK · Billigste ladestandere nær dig</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#171C24;          /* asfalt-nat */
+    --panel:#1F2630;
+    --panel-2:#252D39;
+    --line:#313B49;
+    --text:#E9EDF2;
+    --muted:#8C97A6;
+    --green:#3BD37F;       /* billig */
+    --amber:#F2B740;       /* middel */
+    --red:#EF6355;         /* dyr */
+    --accent:#57B8FF;      /* el-blå, interaktion */
+    --radius:14px;
+    --font-display:"Barlow Semi Condensed",system-ui,sans-serif;
+    --font-body:"Inter",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:var(--font-body);font-size:15px;line-height:1.45;
+    display:flex;flex-direction:column;
+  }
+  /* ---------- Top bar ---------- */
+  header{
+    display:flex;align-items:center;gap:12px;
+    padding:10px 14px;border-bottom:1px solid var(--line);
+    background:var(--panel);position:relative;z-index:1200;
+  }
+  .logo{font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:.02em}
+  .logo .bolt{color:var(--accent)}
+  .updated{font-size:11px;color:var(--muted);margin-top:1px}
+  .spacer{flex:1}
+  /* AC/DC toggle */
+  .acdc{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:3px}
+  .acdc button{
+    border:0;background:transparent;color:var(--muted);cursor:pointer;
+    font-family:var(--font-display);font-weight:600;font-size:14px;letter-spacing:.04em;
+    padding:5px 14px;border-radius:999px;transition:background .15s,color .15s;
+  }
+  .acdc button.active{background:var(--accent);color:#0D141C}
+  .acdc button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* ---------- Map ---------- */
+  #mapwrap{position:relative;height:52vh;min-height:300px}
+  #map{height:100%;background:#10151C}
+  .leaflet-container{font-family:var(--font-body)}
+  /* radius control overlay */
+  .radiusbox{
+    position:absolute;left:12px;right:12px;bottom:12px;z-index:1000;
+    background:rgba(31,38,48,.92);backdrop-filter:blur(6px);
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:10px 14px;display:flex;align-items:center;gap:12px;
+  }
+  .radiusbox label{font-size:12px;color:var(--muted);white-space:nowrap}
+  .radiusbox output{
+    font-family:var(--font-display);font-weight:700;font-size:16px;min-width:52px;text-align:right;
+  }
+  input[type=range]{flex:1;accent-color:var(--accent);height:22px}
+  .locbtn{
+    position:absolute;top:12px;right:12px;z-index:1000;
+    background:var(--panel);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px;
+  }
+  .locbtn:hover{background:var(--panel-2)}
+
+  /* price tag markers */
+  .pricetag{background:none;border:none}
+  .pricetag .tag{
+    font-family:var(--font-display);font-weight:700;font-size:13px;line-height:1;
+    color:#0D141C;padding:5px 7px;border-radius:8px;position:relative;
+    box-shadow:0 2px 6px rgba(0,0,0,.45);white-space:nowrap;text-align:center;
+  }
+  .pricetag .tag::after{
+    content:"";position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);
+    border:5px solid transparent;border-bottom:0;
+  }
+  .tag.g{background:var(--green)} .tag.g::after{border-top:6px solid var(--green)}
+  .tag.a{background:var(--amber)} .tag.a::after{border-top:6px solid var(--amber)}
+  .tag.r{background:var(--red)}   .tag.r::after{border-top:6px solid var(--red)}
+  .tag.u{background:#5A6674;color:#E9EDF2} .tag.u::after{border-top:6px solid #5A6674}
+  .leaflet-popup-content-wrapper{background:var(--panel);color:var(--text);border-radius:12px}
+  .leaflet-popup-tip{background:var(--panel)}
+  .pop h4{font-family:var(--font-display);font-size:16px;margin-bottom:2px}
+  .pop .sub{color:var(--muted);font-size:12px;margin-bottom:6px}
+  .pop .price{font-family:var(--font-display);font-weight:700;font-size:18px}
+  .pop .price small{font-weight:500;font-size:11px;color:var(--muted)}
+  .pop .navlink{
+    display:block;margin-top:9px;text-align:center;text-decoration:none;
+    background:var(--accent);color:#0D141C;font-weight:600;font-size:13px;
+    border-radius:9px;padding:8px 10px;
+  }
+
+  /* ---------- List ---------- */
+  main{flex:1;overflow:auto;padding:12px 14px 24px}
+  .listhead{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .listhead h2{font-family:var(--font-display);font-weight:600;font-size:16px}
+  .count{font-size:12px;color:var(--muted)}
+  select{
+    margin-left:auto;background:var(--panel-2);color:var(--text);
+    border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:13px;
+  }
+  .row{
+    display:flex;align-items:center;gap:12px;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:11px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .12s;
+  }
+  .row:hover{border-color:var(--accent)}
+  .chip{
+    font-family:var(--font-display);font-weight:700;font-size:17px;color:#0D141C;
+    border-radius:9px;padding:7px 9px;min-width:64px;text-align:center;line-height:1;
+  }
+  .chip small{display:block;font-size:9px;font-weight:600;opacity:.75;margin-top:2px;letter-spacing:.03em}
+  .chip.g{background:var(--green)} .chip.a{background:var(--amber)} .chip.r{background:var(--red)}
+  .chip.u{background:#5A6674;color:#E9EDF2}
+  .rowinfo{flex:1;min-width:0}
+  .rowinfo b{font-size:15px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rowinfo span{font-size:12px;color:var(--muted)}
+  .dist{font-family:var(--font-display);font-weight:600;font-size:14px;color:var(--muted);white-space:nowrap}
+  .empty,.loading{
+    text-align:center;color:var(--muted);padding:34px 10px;border:1px dashed var(--line);
+    border-radius:var(--radius);font-size:14px;
+  }
+  .notice{
+    font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:8px 12px;margin-bottom:10px;
+  }
+  .notice b{color:var(--amber)}
+  /* favoritter */
+  .favbtn{
+    background:var(--panel-2);color:var(--text);border:1px solid var(--line);
+    border-radius:10px;padding:7px 12px;font-size:13px;cursor:pointer;white-space:nowrap;
+  }
+  .favbtn.on{border-color:var(--accent);color:var(--accent)}
+  .favbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .favpanel{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px;margin-bottom:10px;
+  }
+  .favhint{font-size:12px;color:var(--muted);margin-bottom:10px}
+  .favchips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .favchip{
+    position:relative;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:999px;padding:7px 14px;font-size:13px;cursor:pointer;
+  }
+  .favchip.sel{border-color:var(--accent);background:rgba(87,184,255,.12)}
+  .favchip .n{
+    position:absolute;top:-7px;right:-4px;background:var(--accent);color:#0D141C;
+    font-family:var(--font-display);font-weight:700;font-size:11px;line-height:1;
+    border-radius:999px;padding:3px 6px;
+  }
+  .favclear{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    border-radius:10px;padding:6px 12px;font-size:12px;cursor:pointer;
+  }
+  .favclear:hover{color:var(--text)}
+  .hideunknown{
+    display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);
+    margin:0 2px 10px;cursor:pointer;user-select:none;
+  }
+  .hideunknown input{accent-color:var(--accent);width:15px;height:15px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  @media (min-width:900px){
+    body{flex-direction:row}
+    #mapwrap{height:100vh;flex:1}
+    aside{width:420px;display:flex;flex-direction:column;border-left:1px solid var(--line)}
+    aside header{border-bottom:1px solid var(--line)}
+    main{flex:1}
+  }
+</style>
+</head>
+<body>
+<div id="mapwrap">
+  <div id="map"></div>
+  <button class="locbtn" id="btnLocate">📍 Min position</button>
+  <div class="radiusbox">
+    <label for="radius">Radius</label>
+    <input type="range" id="radius" min="2" max="50" step="1" value="10">
+    <output id="radiusOut">10 km</output>
+  </div>
+</div>
+
+<aside>
+  <header>
+    <div>
+      <div class="logo"><span class="bolt">⚡</span> LadepriserDK</div>
+      <div class="updated" id="updated">Henter priser …</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="acdc" role="tablist" aria-label="Ladetype">
+      <button id="btnDC" class="active" role="tab" aria-selected="true">DC lyn</button>
+      <button id="btnAC" role="tab" aria-selected="false">AC</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice" id="dataNotice" hidden></div>
+    <div class="listhead">
+      <h2>Ladere i området</h2>
+      <span class="count" id="count"></span>
+      <select id="sort" aria-label="Sortering">
+        <option value="price-asc" selected>Pris · billigste først</option>
+        <option value="price-desc">Pris · dyreste først</option>
+        <option value="dist">Afstand · nærmeste først</option>
+        <option value="op">Operatør · A–Å</option>
+      </select>
+      <button id="favBtn" class="favbtn" aria-expanded="false">★ Alle</button>
+    </div>
+    <div class="favpanel" id="favPanel" hidden>
+      <div class="favhint">Tryk på udbyderne i den rækkefølge, du prioriterer dem – tallet viser rækkefølgen, og kun de valgte vises. Tryk igen for at fjerne.</div>
+      <div class="favchips" id="favChips"></div>
+      <label class="hideunknown">
+        <input type="checkbox" id="hideUnknown"> Vis ikke ukendte
+      </label>
+      <button id="favClear" class="favclear">Nulstil · vis alle</button>
+    </div>
+    <div id="list"><div class="loading">Henter ladestandere …</div></div>
+  </main>
+</aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* =========================================================================
+   LADEPRISERDK v0.1 — kort + radius + priser
+   Datakilder:
+   - Positioner: Open Charge Map (gratis API). Få en gratis nøgle på
+     https://openchargemap.org/site/developerinfo og indsæt herunder.
+     Uden nøgle virker det ofte stadig, men med lav rate-grænse.
+   - Priser: EKSEMPELPRISER pr. operatør (kr/kWh, uden abonnement).
+     I v2 erstattes PRICES af en dagligt genereret JSON (Netlify Function).
+   ========================================================================= */
+const OCM_API_KEY = "205f05da-b17e-4ddc-8496-4bbb52e4931a";           // ← indsæt din gratis Open Charge Map-nøgle her
+const DEFAULT_CENTER = [55.9757, 10.1553];   // Odder som fallback
+const PRICE_CHEAP = 3.50, PRICE_MID = 4.50;  // grøn / gul / rød-grænser
+
+/* Priser hentes fra ladepriser.json, som dit Node-script opdaterer */
+const PRICE_DATA_URL = "./ladepriser.json";
+let PRICES = {};
+
+const FALLBACK_PRICE_ROWS = [
+  { udbyder:"E.ON", ac:2.76, dc:3.38, lyn:2.95, vurdering:"BILLIG" },
+  { udbyder:"Tesla Supercharger", ac:null, dc:null, lyn:3.50, vurdering:"MIDDEL" },
+  { udbyder:"OK", ac:2.69, dc:3.19, lyn:3.59, vurdering:"MIDDEL" },
+  { udbyder:"Circle K", ac:null, dc:null, lyn:3.69, vurdering:"MIDDEL" },
+  { udbyder:"Norlys", ac:2.99, dc:3.49, lyn:3.99, vurdering:"MIDDEL" },
+  { udbyder:"Clever Go", ac:3.49, dc:3.49, lyn:3.99, vurdering:"MIDDEL" },
+  { udbyder:"Shell Recharge", ac:null, dc:null, lyn:4.49, vurdering:"MIDDEL" },
+  { udbyder:"IONITY", ac:null, dc:null, lyn:5.99, vurdering:"DYR" }
+];
+
+const PRICE_ALIASES = {
+  "E.ON":               { display:"E.ON", aliases:["E.ON", "EON", "E-ON", "E.ON Drive"] },
+  "Tesla Supercharger": { display:"Tesla", aliases:["Tesla", "Tesla Supercharger"] },
+  "OK":                 { display:"OK", aliases:["OK", "OK a.m.b.a."] },
+  "Circle K":           { display:"Circle K", aliases:["Circle K"] },
+  "Norlys":             { display:"Norlys", aliases:["Norlys"] },
+  "Clever Go":          { display:"Clever", aliases:["Clever", "Clever Go"] },
+  "Shell Recharge":     { display:"Shell Recharge", aliases:["Shell", "Shell Recharge", "Recharge"] },
+  "IONITY":             { display:"IONITY", aliases:["IONITY", "Ionity"] }
+};
+
+function normalizeOperatorName(value){
+  return (value || "")
+    .toLowerCase()
+    .replace(/&/g, " og ")
+    .replace(/[^a-z0-9æøå]+/g, " ")
+    .trim();
+}
+
+function buildPriceIndex(rows){
+  const index = {};
+  for (const row of rows){
+    const config = PRICE_ALIASES[row.udbyder] || {
+      display: row.udbyder,
+      aliases: [row.udbyder]
+    };
+    const price = {
+      name: config.display,
+      ac: row.ac ?? null,
+      dc: row.dc ?? null,
+      lyn: row.lyn ?? null,
+      vurdering: row.vurdering || null,
+      kilde: row.kilde || ""
+    };
+    for (const alias of config.aliases){
+      index[normalizeOperatorName(alias)] = price;
+    }
+  }
+  return index;
+}
+
+async function loadPrices(){
+  const updated = document.getElementById("updated");
+  try {
+    const res = await fetch(PRICE_DATA_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (!Array.isArray(data.priser) || !data.priser.length){
+      throw new Error("Ingen priser i JSON-filen");
+    }
+    PRICES = buildPriceIndex(data.priser);
+    updated.textContent = "Priser hentet " +
+      (data.hentetDanskTid || new Date(data.hentetUTC).toLocaleString("da-DK"));
+  } catch (err) {
+    console.warn("Kunne ikke hente ladepriser.json:", err);
+    PRICES = buildPriceIndex(FALLBACK_PRICE_ROWS);
+    updated.textContent = "Reservepriser · ladepriser.json kunne ikke hentes";
+  }
+}
+
+let mode = "dc";                 // "dc" | "ac"
+let favs = [];                   // operatørnavne i prioriteret rækkefølge (tom = alle)
+let center = DEFAULT_CENTER.slice();
+let radiusKm = 10;
+let pois = [];                   // rå OCM-punkter beriget med pris/afstand
+let markers = [];
+let fetchTimer = null;
+
+/* ---------- Kort ---------- */
+const map = L.map("map", { zoomControl: true }).setView(center, 11);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
+
+const circle = L.circle(center, {
+  radius: radiusKm * 1000, color: "#57B8FF", weight: 1.5,
+  fillColor: "#57B8FF", fillOpacity: 0.06, dashArray: "6 6"
+}).addTo(map);
+
+const centerDot = L.circleMarker(center, {
+  radius: 6, color: "#57B8FF", weight: 2, fillColor: "#0D141C", fillOpacity: 1
+}).addTo(map).bindTooltip("Dit centrum");
+
+map.on("moveend", () => {
+  /* Flyt centrum ved at panorere? Nej — centrum flyttes kun via klik/locate,
+     så kortet kan udforskes frit. */
+});
+map.on("click", (e) => { setCenter([e.latlng.lat, e.latlng.lng]); });
+
+function setCenter(latlng){
+  center = latlng;
+  circle.setLatLng(latlng);
+  centerDot.setLatLng(latlng);
+  map.fitBounds(circle.getBounds(), { padding: [16, 16] });
+  scheduleFetch();
+}
+
+/* ---------- Hjælpere ---------- */
+function haversineKm(a, b){
+  const R = 6371, toRad = d => d * Math.PI / 180;
+  const dLat = toRad(b[0]-a[0]), dLon = toRad(b[1]-a[1]);
+  const h = Math.sin(dLat/2)**2 +
+            Math.cos(toRad(a[0]))*Math.cos(toRad(b[0]))*Math.sin(dLon/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function priceClass(p){
+  if (p == null) return "u";
+  if (p < PRICE_CHEAP) return "g";
+  if (p <= PRICE_MID) return "a";
+  return "r";
+}
+function fmt(p){ return p == null ? "–" : p.toFixed(2).replace(".", ","); }
+function matchOperator(title){
+  if (!title) return null;
+  const t = normalizeOperatorName(title);
+  const padded = " " + t + " ";
+  const keys = Object.keys(PRICES).sort((a,b) => b.length - a.length);
+  for (const key of keys){
+    if (t === key || padded.includes(" " + key + " ")) return PRICES[key];
+  }
+  return null;
+}
+function isDC(conns){
+  return (conns || []).some(c =>
+    (c.CurrentType && c.CurrentType.ID === 30) || (c.PowerKW && c.PowerKW >= 43));
+}
+function maxKW(conns){
+  return Math.max(0, ...(conns || []).map(c => c.PowerKW || 0));
+}
+
+/* ---------- Datahentning (Open Charge Map) ---------- */
+function scheduleFetch(){
+  clearTimeout(fetchTimer);
+  fetchTimer = setTimeout(fetchPois, 450);
+}
+
+async function fetchPois(){
+  document.getElementById("list").innerHTML =
+    '<div class="loading">Henter ladestandere …</div>';
+  const url = "https://api.openchargemap.io/v3/poi/?output=json&countrycode=DK" +
+    "&latitude=" + center[0] + "&longitude=" + center[1] +
+    "&distance=" + radiusKm + "&distanceunit=KM&maxresults=200&verbose=false" +
+    (OCM_API_KEY ? "&key=" + OCM_API_KEY : "");
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    pois = data.map(p => {
+      const pos = [p.AddressInfo.Latitude, p.AddressInfo.Longitude];
+      const opTitleRaw = (p.OperatorInfo && p.OperatorInfo.Title) || "";
+      const op = matchOperator(opTitleRaw) || matchOperator(p.AddressInfo.Title);
+      const dc = isDC(p.Connections);
+      return {
+        pos,
+        title: (p.AddressInfo.Title || "Ladestander"),
+        addr: [p.AddressInfo.AddressLine1, p.AddressInfo.Town].filter(Boolean).join(", "),
+        opTitle: op ? op.name : (opTitleRaw || "Ukendt operatør"),
+        op, dc, kw: maxKW(p.Connections),
+        dist: haversineKm(center, pos),
+      };
+    });
+    showNotice(null);
+  } catch (err) {
+    console.warn("OCM-fejl, viser eksempeldata:", err);
+    pois = sampleData();
+    showNotice("<b>Kunne ikke hente live-data</b> fra Open Charge Map " +
+      "(virker når appen ligger på Netlify, eller når API-nøgle er sat). " +
+      "Viser eksempel-ladere omkring centrum.");
+  }
+  render();
+}
+
+function showNotice(html){
+  const n = document.getElementById("dataNotice");
+  if (html){ n.innerHTML = html; n.hidden = false; } else { n.hidden = true; }
+}
+
+/* Eksempeldata så UI'et kan afprøves uden netadgang til API'et */
+function sampleData(){
+  const ops = ["Clever","OK","Circle K","E.ON","Ionity","Norlys","Uno-X","Tesla"];
+  const out = [];
+  for (let i = 0; i < 26; i++){
+    const ang = Math.random() * Math.PI * 2;
+    const d = Math.random() * radiusKm * 0.95;
+    const pos = [ center[0] + (d/111) * Math.cos(ang),
+                  center[1] + (d/(111*Math.cos(center[0]*Math.PI/180))) * Math.sin(ang) ];
+    const opName = ops[i % ops.length];
+    const op = matchOperator(opName.toLowerCase() + " ");
+    const dc = Math.random() > 0.35;
+    out.push({ pos, title: opName + " " + (100+i), addr: "Eksempelvej " + (i+1),
+               opTitle: opName, op, dc, kw: dc ? [50,150,300][i%3] : [11,22][i%2],
+               dist: d });
+  }
+  return out;
+}
+
+/* ---------- Rendering ---------- */
+function currentPrice(p){
+  if (!p.op) return null;
+  if (mode === "ac") return p.op.ac;
+  /* 100 kW og derover bruger lynprisen; øvrige DC-ladere bruger DC-prisen */
+  if (p.kw >= 100) return p.op.lyn ?? p.op.dc;
+  return p.op.dc ?? p.op.lyn;
+}
+
+function render(){
+  /* filtrér efter ladetype, radius og evt. favoritter */
+  let shown = pois.filter(p => (mode === "dc" ? p.dc : !p.dc) && p.dist <= radiusKm);
+  if (favs.length){
+    shown = shown.filter(p => p.op && favs.includes(p.op.name));
+  }
+  if (document.getElementById("hideUnknown").checked){
+    shown = shown.filter(p => currentPrice(p) != null);
+  }
+
+  /* sortering: favorit-prioritet først, dernæst valgt sortering */
+  const s = document.getElementById("sort").value;
+  const cmp = (a,b) => {
+    const pa = currentPrice(a), pb = currentPrice(b);
+    if (s === "price-asc"){
+      if (pa == null && pb == null) return a.dist - b.dist;
+      if (pa == null) return 1; if (pb == null) return -1;
+      return pa - pb || a.dist - b.dist;
+    }
+    if (s === "price-desc"){
+      if (pa == null && pb == null) return a.dist - b.dist;
+      if (pa == null) return 1; if (pb == null) return -1;
+      return pb - pa || a.dist - b.dist;
+    }
+    if (s === "dist") return a.dist - b.dist;
+    return a.opTitle.localeCompare(b.opTitle, "da") || a.dist - b.dist;
+  };
+  shown.sort((a,b) => {
+    if (favs.length){
+      const fa = favs.indexOf(a.op.name), fb = favs.indexOf(b.op.name);
+      if (fa !== fb) return fa - fb;
+    }
+    return cmp(a,b);
+  });
+
+  /* markører */
+  markers.forEach(m => map.removeLayer(m));
+  markers = shown.map(p => {
+    const price = currentPrice(p);
+    const cls = priceClass(price);
+    const icon = L.divIcon({
+      className: "pricetag",
+      html: '<div class="tag ' + cls + '">' + (price==null ? "?" : fmt(price)) + '</div>',
+      iconSize: null, iconAnchor: [22, 30]
+    });
+    const m = L.marker(p.pos, { icon }).addTo(map);
+    m.bindPopup(
+      '<div class="pop"><h4>' + p.title + '</h4>' +
+      '<div class="sub">' + p.opTitle + (p.addr ? " · " + p.addr : "") + '</div>' +
+      '<div class="price">' + fmt(price) + ' <small>kr/kWh · ' +
+        (p.dc ? "DC" : "AC") + (p.kw ? " · " + Math.round(p.kw) + " kW" : "") +
+        ' · ' + p.dist.toFixed(1).replace(".", ",") + ' km</small></div>' +
+      '<a class="navlink" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' +
+        p.pos[0] + ',' + p.pos[1] + '">🧭 Start navigation</a></div>'
+    );
+    return m;
+  });
+
+  /* liste */
+  const list = document.getElementById("list");
+  document.getElementById("count").textContent =
+    shown.length + " ladere · " + radiusKm + " km";
+  if (!shown.length){
+    list.innerHTML = '<div class="empty">Ingen ' +
+      (mode === "dc" ? "DC-" : "AC-") +
+      'ladere fundet inden for ' + radiusKm + ' km' +
+      (favs.length ? ' blandt dine valgte udbydere' : '') +
+      '.<br>Prøv en større radius, skift ladetype' +
+      (favs.length ? ', eller nulstil favoritter' : '') + '.</div>';
+    return;
+  }
+  list.innerHTML = shown.map((p, i) => {
+    const price = currentPrice(p);
+    return '<div class="row" data-i="' + i + '">' +
+      '<div class="chip ' + priceClass(price) + '">' + fmt(price) +
+        '<small>kr/kWh</small></div>' +
+      '<div class="rowinfo"><b>' + p.title + '</b>' +
+        '<span>' + p.opTitle + (p.kw ? " · " + Math.round(p.kw) + " kW" : "") + '</span></div>' +
+      '<div class="dist">' + p.dist.toFixed(1).replace(".", ",") + ' km</div>' +
+    '</div>';
+  }).join("");
+
+  /* klik på række → flyv til markør */
+  list.querySelectorAll(".row").forEach(row => {
+    row.addEventListener("click", () => {
+      const p = shown[+row.dataset.i];
+      map.flyTo(p.pos, Math.max(map.getZoom(), 13));
+      const m = markers[+row.dataset.i];
+      if (m) m.openPopup();
+    });
+  });
+}
+
+/* ---------- Kontroller ---------- */
+document.getElementById("radius").addEventListener("input", e => {
+  radiusKm = +e.target.value;
+  document.getElementById("radiusOut").textContent = radiusKm + " km";
+  circle.setRadius(radiusKm * 1000);
+  map.fitBounds(circle.getBounds(), { padding: [16, 16] });   // zoom følger radius
+  scheduleFetch();
+});
+document.getElementById("btnDC").addEventListener("click", () => setMode("dc"));
+document.getElementById("btnAC").addEventListener("click", () => setMode("ac"));
+function setMode(m){
+  mode = m;
+  document.getElementById("btnDC").classList.toggle("active", m === "dc");
+  document.getElementById("btnAC").classList.toggle("active", m === "ac");
+  document.getElementById("btnDC").setAttribute("aria-selected", m === "dc");
+  document.getElementById("btnAC").setAttribute("aria-selected", m === "ac");
+  render();
+}
+document.getElementById("sort").addEventListener("change", render);
+document.getElementById("hideUnknown").addEventListener("change", render);
+document.getElementById("btnLocate").addEventListener("click", locate);
+
+/* ---------- Favoritter ---------- */
+const favBtn = document.getElementById("favBtn");
+const favPanel = document.getElementById("favPanel");
+
+function operatorNames(){
+  return [...new Set(Object.values(PRICES).map(o => o.name))]
+    .sort((a,b) => a.localeCompare(b, "da"));
+}
+function buildFavChips(){
+  document.getElementById("favChips").innerHTML = operatorNames().map(name => {
+    const i = favs.indexOf(name);
+    return '<button class="favchip' + (i > -1 ? " sel" : "") + '" data-op="' + name + '">' +
+      name + (i > -1 ? '<span class="n">' + (i+1) + '</span>' : '') + '</button>';
+  }).join("");
+  document.querySelectorAll(".favchip").forEach(chip => {
+    chip.addEventListener("click", () => toggleFav(chip.dataset.op));
+  });
+  favBtn.textContent = favs.length ? "★ " + favs.length + " valgt" : "★ Alle";
+  favBtn.classList.toggle("on", favs.length > 0);
+}
+function toggleFav(name){
+  const i = favs.indexOf(name);
+  if (i > -1) favs.splice(i, 1); else favs.push(name);
+  buildFavChips();
+  render();
+}
+favBtn.addEventListener("click", () => {
+  const open = favPanel.hidden;
+  favPanel.hidden = !open;
+  favBtn.setAttribute("aria-expanded", open);
+});
+document.getElementById("favClear").addEventListener("click", () => {
+  favs = [];
+  buildFavChips();
+  render();
+});
+
+function locate(){
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      setCenter([pos.coords.latitude, pos.coords.longitude]);
+    },
+    () => { /* afvist — bliv på nuværende centrum */ },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+}
+
+/* ---------- Start ---------- */
+async function startApp(){
+  await loadPrices();
+  buildFavChips();
+  locate();            // prøv at finde brugeren med det samme
+  fetchPois();         // og hent data for startcentrum uanset
+}
+startApp();
+</script>
+</body>
+</html>

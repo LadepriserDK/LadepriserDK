@@ -1,0 +1,12 @@
+{
+  "name": "ladepriserdk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Henter danske ladepriser dagligt og viser dem på et kort",
+  "scripts": {
+    "hent": "node hent-ladepriser.js"
+  },
+  "dependencies": {
+    "playwright": "^1.48.0"
+  }
+}
