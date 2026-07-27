@@ -53,7 +53,7 @@
   }
   .logo{font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:.02em}
   .logo .bolt{color:var(--accent)}
-  .updated{font-size:11px;color:var(--muted);margin-top:1px}
+  .updated{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* AC/DC toggle */
   .acdc{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:3px}
   .acdc button{
@@ -179,6 +179,11 @@
     background:var(--panel-2);border:1px solid var(--line);border-radius:var(--radius);
     padding:12px;margin-bottom:12px;
   }
+  .gearblock{margin-bottom:14px}
+  .gearblock:last-of-type{margin-bottom:0}
+  .gearlabel{font-family:var(--font-display);font-weight:600;font-size:13px;color:var(--text);margin-bottom:7px;letter-spacing:.02em}
+  .gearpanel select{width:100%;margin:0}
+  .gearfoot{font-size:11px;color:var(--muted);border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
   .favhint{font-size:12px;color:var(--muted);margin-bottom:10px}
   .favchips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
   .favchip{
@@ -242,22 +247,29 @@
   <main>
     <div class="notice" id="dataNotice" hidden></div>
     <div class="gearpanel" id="gearPanel" hidden>
-      <div class="favhint">Vælg favorit-udbydere i prioriteret rækkefølge – tallet viser rækkefølgen, og kun de valgte vises. Tryk igen for at fjerne.</div>
-      <div class="favchips" id="favChips"></div>
-      <label class="hideunknown">
-        <input type="checkbox" id="hideUnknown"> Vis ikke ukendte
-      </label>
-      <button id="favClear" class="favclear">Nulstil · vis alle</button>
+      <div class="gearblock">
+        <div class="gearlabel">Sortering</div>
+        <select id="sort" aria-label="Sortering">
+          <option value="price-asc" selected>Pris · billigste først</option>
+          <option value="price-desc">Pris · dyreste først</option>
+          <option value="dist">Afstand · nærmeste først</option>
+          <option value="op">Operatør · A–Å</option>
+        </select>
+      </div>
+      <div class="gearblock">
+        <div class="gearlabel">Favorit-udbydere</div>
+        <div class="favhint">Vælg i prioriteret rækkefølge – tallet viser rækkefølgen, og kun de valgte vises. Tryk igen for at fjerne.</div>
+        <div class="favchips" id="favChips"></div>
+        <label class="hideunknown">
+          <input type="checkbox" id="hideUnknown"> Vis ikke ukendte
+        </label>
+        <button id="favClear" class="favclear">Nulstil · vis alle</button>
+      </div>
+      <div class="gearfoot" id="updatedFull">Henter priser …</div>
     </div>
     <div class="listhead">
       <h2>Ladere i området</h2>
       <span class="count" id="count"></span>
-      <select id="sort" aria-label="Sortering">
-        <option value="price-asc" selected>Pris · billigste først</option>
-        <option value="price-desc">Pris · dyreste først</option>
-        <option value="dist">Afstand · nærmeste først</option>
-        <option value="op">Operatør · A–Å</option>
-      </select>
     </div>
     <div id="list"><div class="loading">Henter ladestandere …</div></div>
   </main>
@@ -345,12 +357,20 @@ async function loadPrices(){
       throw new Error("Ingen priser i JSON-filen");
     }
     PRICES = buildPriceIndex(data.priser);
-    updated.textContent = "Priser hentet " +
-      (data.hentetDanskTid || new Date(data.hentetUTC).toLocaleString("da-DK"));
+    const fuld = data.hentetDanskTid || new Date(data.hentetUTC).toLocaleString("da-DK");
+    // kort tid til bjælken: tag kun klokkeslættet (HH.MM) hvis muligt
+    let kort = fuld;
+    const m = fuld.match(/(\d{1,2}[.:]\d{2})(?![.:]?\d)/);
+    if (m) kort = "Opdateret " + m[1].replace(":", ".").slice(0,5);
+    updated.textContent = kort;
+    const uf = document.getElementById("updatedFull");
+    if (uf) uf.textContent = "Priser hentet " + fuld;
   } catch (err) {
     console.warn("Kunne ikke hente ladepriser.json:", err);
     PRICES = buildPriceIndex(FALLBACK_PRICE_ROWS);
-    updated.textContent = "Reservepriser · ladepriser.json kunne ikke hentes";
+    updated.textContent = "Reservepriser";
+    const uf = document.getElementById("updatedFull");
+    if (uf) uf.textContent = "Reservepriser · ladepriser.json kunne ikke hentes";
   }
 }
 
