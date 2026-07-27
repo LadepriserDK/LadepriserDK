@@ -1,16 +1,80 @@
 {
-  "hentetUTC": "2026-07-26T05:15:00.000Z",
-  "hentetDanskTid": "26.07.2026, 07.15.00",
+  "hentetUTC": "2026-07-27T07:13:19.837Z",
+  "hentetDanskTid": "27.07.2026, 09.13.19",
   "hjemmeside": "https://ladestandertilelbil.dk/ladepriser",
   "antalUdbydere": 8,
   "priser": [
-    { "udbyder": "E.ON", "ac": 2.76, "dc": 3.38, "lyn": 2.95, "vurdering": "BILLIG", "abonnement": "Nej", "kilde": "" },
-    { "udbyder": "Tesla Supercharger", "ac": null, "dc": null, "lyn": 3.50, "vurdering": "MIDDEL", "abonnement": "Nej", "kilde": "" },
-    { "udbyder": "OK", "ac": 2.69, "dc": 3.19, "lyn": 3.59, "vurdering": "MIDDEL", "abonnement": "Nej", "kilde": "" },
-    { "udbyder": "Circle K", "ac": null, "dc": null, "lyn": 3.69, "vurdering": "MIDDEL", "abonnement": "Nej", "kilde": "" },
-    { "udbyder": "Norlys", "ac": 2.99, "dc": 3.49, "lyn": 3.99, "vurdering": "MIDDEL", "abonnement": "Nej", "kilde": "" },
-    { "udbyder": "Clever Go", "ac": 3.49, "dc": 3.49, "lyn": 3.99, "vurdering": "MIDDEL", "abonnement": "Nej", "kilde": "" },
-    { "udbyder": "Shell Recharge", "ac": null, "dc": null, "lyn": 4.49, "vurdering": "MIDDEL", "abonnement": "Nej", "kilde": "" },
-    { "udbyder": "IONITY", "ac": null, "dc": null, "lyn": 5.99, "vurdering": "DYR", "abonnement": "Nej", "kilde": "" }
+    {
+      "udbyder": "E.ON",
+      "ac": 2.76,
+      "dc": 3.38,
+      "lyn": 2.95,
+      "vurdering": "BILLIG",
+      "abonnement": "Ingen",
+      "kilde": "https://eon.dk/privat/elbil/opladning"
+    },
+    {
+      "udbyder": "Tesla Supercharger",
+      "ac": null,
+      "dc": null,
+      "lyn": 3.5,
+      "vurdering": "MIDDEL",
+      "abonnement": "Ingen",
+      "kilde": "https://www.tesla.com/da_dk/supercharger"
+    },
+    {
+      "udbyder": "OK",
+      "ac": 2.69,
+      "dc": 3.19,
+      "lyn": 3.59,
+      "vurdering": "MIDDEL",
+      "abonnement": "Ingen",
+      "kilde": "https://ok.dk/privat/produkter/elbil"
+    },
+    {
+      "udbyder": "Circle K",
+      "ac": null,
+      "dc": null,
+      "lyn": 3.69,
+      "vurdering": "MIDDEL",
+      "abonnement": "Ingen",
+      "kilde": "https://www.circlek.dk/opladning-af-elbil/ladestandere/elbil-opladning-pris"
+    },
+    {
+      "udbyder": "Norlys",
+      "ac": 2.99,
+      "dc": 3.49,
+      "lyn": 3.99,
+      "vurdering": "MIDDEL",
+      "abonnement": "Ingen",
+      "kilde": "https://norlys.dk/elbil/opladning"
+    },
+    {
+      "udbyder": "Clever Go",
+      "ac": 3.49,
+      "dc": 3.49,
+      "lyn": 3.99,
+      "vurdering": "MIDDEL",
+      "abonnement": "Clever One",
+      "kilde": "https://clever.dk/opladning/priser"
+    },
+    {
+      "udbyder": "Shell Recharge",
+      "ac": null,
+      "dc": null,
+      "lyn": 4.49,
+      "vurdering": "MIDDEL",
+      "abonnement": "Shell Card",
+      "kilde": "https://shellservice.dk/lynladning"
+    },
+    {
+      "udbyder": "IONITY",
+      "ac": null,
+      "dc": null,
+      "lyn": 5.99,
+      "vurdering": "DYR",
+      "abonnement": "IONITY Passport",
+      "kilde": "https://ionity.eu/da"
+    }
   ]
 }
