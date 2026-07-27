@@ -1,0 +1,65 @@
+name: Opdater ladepriser
+
+# Kører automatisk hver morgen + kan startes manuelt fra Actions-fanen
+on:
+  schedule:
+    # 05:15 UTC = 07:15 dansk sommertid (06:15 om vinteren). Kilden opdaterer 07:00.
+    - cron: "15 5 * * *"
+  workflow_dispatch: {}
+  push:
+    branches: [ main ]
+
+# Rettigheder: skrive den nye JSON tilbage + udgive til Pages
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  hent-og-udgiv:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hent koden
+        uses: actions/checkout@v4
+
+      - name: Opsæt Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Installer afhængigheder
+        run: npm install
+
+      - name: Installer Playwright-browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Hent friske priser
+        run: node hent-ladepriser.js
+        continue-on-error: true
+
+      - name: Gem opdateret ladepriser.json
+        run: |
+          if [ -n "$(git status --porcelain ladepriser.json)" ]; then
+            git config user.name "Ladepris-robot"
+            git config user.email "actions@github.com"
+            git add ladepriser.json
+            git commit -m "Automatisk prisopdatering $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "Ingen ændringer i priserne."
+          fi
+
+      - name: Klargør til udgivelse
+        uses: actions/configure-pages@v5
+
+      - name: Pak siden
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+
+      - name: Udgiv til GitHub Pages
+        uses: actions/deploy-pages@v4
