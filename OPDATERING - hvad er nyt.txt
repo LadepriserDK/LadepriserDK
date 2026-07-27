@@ -1,52 +1,31 @@
 LADEPRISERDK – OPDATERING
 =========================
 
-Denne pakke opdaterer din app. Læg ALLE filerne op i dit GitHub-repo
-(samme sted som før) og overskriv de gamle. Nye filer i denne pakke:
+Læg ALLE filerne op i dit GitHub-repo (Add file → Upload files → træk alt
+ind → Commit). Overskriv de gamle når GitHub spørger.
 
-  - icon-192.png, icon-512.png, icon.svg   (app-ikon: grønt lyn)
-  - manifest.webmanifest                   (så appen installeres med ikon og navn)
+DENNE RUNDE
+-----------
+- Fjernet: den store Monta-bjælke på kortet (var i vejen)
+- Fjernet: app-knapperne (Åbn Tesla/IONITY osv.) og Monta-knappen i popup'en.
+  Grund: en webside kan ikke pålideligt åbne en operatørs app på Android –
+  den ville alligevel bare lande i Google Play. Og Monta blokerer selv for
+  at vise deres kort inde i andre apps, så det kunne kun åbne henover.
+- NYT: popup'en viser nu abonnements-status ved prisen:
+    "✓ uden abonnement"  eller  "⚠ kræver abonnement"
+  så du kan se, hvad prisen dækker, i stedet for at gætte.
+- NYT: "💰 Prisdetaljer"-knap i popup'en åbner kildens prisside for
+  operatøren, så du kan tjekke tallet.
 
-Ændrede filer:
-  - index.html          (nyt: luftfoto-knap, stiktyper, app-knapper, ikon-links)
-  - hent-ladepriser.js  (mere robust: venter aktivt på priserne, fejler synligt
-                          hvis kilden driller, i stedet for falsk grønt lys)
+OM PRISERNE
+-----------
+Priserne kommer fra ladestandertilelbil.dk (hentet af robotten hver morgen).
+Det er som udgangspunkt priser UDEN abonnement (drop-in), men kilden markerer
+det pr. udbyder i abonnement-feltet – og det er DET, popup'en nu viser.
 
-SÅDAN LÆGGER DU DET OP
-----------------------
-1. Gå til dit repo på github.com
-2. "Add file" → "Upload files"
-3. Træk ALLE filer fra denne mappe ind (icon-filerne og manifest skal med!)
-4. "Commit changes"
-5. Robotten kører automatisk og udgiver den nye version. Vil du se den med det
-   samme: fanen "Actions" → "Opdater ladepriser" → "Run workflow".
-
-INSTALLÉR MED IKON PÅ TELEFONEN
+TIDLIGERE TILFØJET (stadig med)
 -------------------------------
-Åbn app-adressen i browseren, og vælg "Føj til hjemmeskærm".
-Nu får den det grønne lyn-ikon i stedet for et gråt skærmbillede.
-(Har du allerede lagt den på hjemmeskærmen uden ikon: fjern den gamle
-genvej først, genindlæs siden i browseren, og læg den på igen.)
-
-HVAD ER NYT I APPEN
--------------------
-- Tryk på en lader → popup viser nu også stiktyper (CCS/Type 2 osv.) og antal stik
-- "🛰️ Se luftfoto"-knap: åbner stedet set oppefra, så du kan se om der er
-  tankstation, toilet eller spisested ved siden af laderen
-- "📱 Åbn [operatør]"-knap for Tesla, Clever, E.ON, OK og Circle K
-  (åbner operatørens app hvis den er installeret, ellers app-store)
-
-OM AC-PRISER
-------------
-Kilden (ladestandertilelbil.dk) opgiver kun AC-pris for nogle få udbydere
-(E.ON, OK, Norlys, Clever). De øvrige har kun DC/lyn-pris. Derfor er AC-listen
-kort – det er kildens data, ikke en fejl i appen.
-
---- TILFØJET: Monta-genvej ---
-Fordi der ikke findes en fri, samlet kilde med rigtige AC-priser for alle
-danske ladere, er der nu en genvej til Monta-kortet, som HAR de data:
-- Knap på kortet ("⚡ Monta-kort · AC-priser & ledige") åbner map.monta.com
-- Knap i hver popup ("⚡ Monta") åbner Monta centreret på netop den lader
-Monta viser ægte AC- og DC-priser pr. ladepunkt, ledig/optaget-status og
-travlhed lige nu. Din egen app beholder du til favoritter, radius og
-pris-sortering på DC/lyn.
+- App-ikon (grønt lyn) + manifest til hjemmeskærm
+- Robust scraper der fejler synligt hvis kilden driller
+- Stiktyper + antal stik og "Se luftfoto" i popup'en
+- Kort og bjælke står fast på mobil; kun listen scroller

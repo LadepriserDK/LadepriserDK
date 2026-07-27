@@ -88,13 +88,6 @@
     border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px;
   }
   .locbtn:hover{background:var(--panel-2)}
-  .montabtn{
-    position:absolute;top:52px;right:12px;z-index:1000;
-    background:var(--accent);border:1px solid var(--accent);color:#0D141C;
-    border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;
-    text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.35);
-  }
-  .montabtn:hover{filter:brightness(1.05)}
 
   /* price tag markers */
   .pricetag{background:none;border:none}
@@ -118,6 +111,7 @@
   .pop .price{font-family:var(--font-display);font-weight:700;font-size:18px}
   .pop .price small{font-weight:500;font-size:11px;color:var(--muted)}
   .pop .meta{font-size:12px;color:var(--text);margin-top:5px;opacity:.85}
+  .pop .abon{font-size:11px;margin-top:4px;color:var(--muted)}
   .pop .navlink{
     display:block;margin-top:9px;text-align:center;text-decoration:none;
     background:var(--accent);color:#0D141C;font-weight:600;font-size:13px;
@@ -212,7 +206,6 @@
 <div id="mapwrap">
   <div id="map"></div>
   <button class="locbtn" id="btnLocate">📍 Min position</button>
-  <a class="montabtn" id="btnMonta" target="_blank" rel="noopener" href="https://map.monta.com/">⚡ Monta-kort · AC-priser & ledige</a>
   <div class="radiusbox">
     <label for="radius">Radius</label>
     <input type="range" id="radius" min="2" max="50" step="1" value="10">
@@ -320,6 +313,7 @@ function buildPriceIndex(rows){
       dc: row.dc ?? null,
       lyn: row.lyn ?? null,
       vurdering: row.vurdering || null,
+      abonnement: row.abonnement || "",
       kilde: row.kilde || ""
     };
     for (const alias of config.aliases){
@@ -432,21 +426,15 @@ function stikOversigt(conns){
   }
   return [...navne].slice(0, 4).join(" · ");
 }
-/* Kun de store operatører får en app-knap (efter Davids valg) */
-const OPERATOR_APPS = {
-  "Tesla":    { ios:"https://apps.apple.com/dk/app/tesla/id582007913", android:"https://play.google.com/store/apps/details?id=com.teslamotors.tesla" },
-  "Clever":   { ios:"https://apps.apple.com/dk/app/clever/id916993791", android:"https://play.google.com/store/apps/details?id=dk.clever.app" },
-  "E.ON":     { ios:"https://apps.apple.com/dk/app/e-on-drive/id1487871524", android:"https://play.google.com/store/apps/details?id=com.eon.drive" },
-  "OK":       { ios:"https://apps.apple.com/dk/app/ok-app/id1043816728", android:"https://play.google.com/store/apps/details?id=dk.ok.app" },
-  "Circle K": { ios:"https://apps.apple.com/dk/app/circle-k-danmark/id1214258377", android:"https://play.google.com/store/apps/details?id=com.circlek.dk" },
-  "IONITY":   { ios:"https://apps.apple.com/dk/app/ionity/id1551448692", android:"https://play.google.com/store/apps/details?id=com.cleevio.ionity.android.app" },
-  "Spirii":   { ios:"https://apps.apple.com/dk/app/spirii-go/id1493532817", android:"https://play.google.com/store/apps/details?id=com.spirii.spirii" }
-};
-function appLink(opName){
-  const a = OPERATOR_APPS[opName];
+/* Læser abonnements-status fra pris-kilden og gør den til en tydelig label.
+   Kilden (ladestandertilelbil.dk) skriver typisk "Ja"/"Nej" i abonnement-feltet. */
+function abonnementTekst(op){
+  if (!op) return "";
+  const a = (op.abonnement || "").toString().trim().toLowerCase();
   if (!a) return "";
-  const android = /android/i.test(navigator.userAgent);
-  return android ? a.android : a.ios;
+  if (/^(nej|no|uden|nem|drop)/.test(a)) return "✓ uden abonnement";
+  if (/^(ja|yes|med|kr\u00e6ver)/.test(a)) return "⚠ kræver abonnement";
+  return a; // ukendt format — vis råt så det ikke skjules
 }
 
 /* ---------- Datahentning (Open Charge Map) ---------- */
@@ -573,13 +561,15 @@ function render(){
       iconSize: null, iconAnchor: [22, 30]
     });
     const m = L.marker(p.pos, { icon }).addTo(map);
-    const appHref = appLink(p.op ? p.op.name : "");
+    const abon = abonnementTekst(p.op);
+    const kilde = (p.op && p.op.kilde) ? p.op.kilde : "";
     m.bindPopup(
       '<div class="pop"><h4>' + p.title + '</h4>' +
       '<div class="sub">' + p.opTitle + (p.addr ? " · " + p.addr : "") + '</div>' +
       '<div class="price">' + fmt(price) + ' <small>kr/kWh · ' +
         (p.dc ? "DC" : "AC") + (p.kw ? " · " + Math.round(p.kw) + " kW" : "") +
         ' · ' + p.dist.toFixed(1).replace(".", ",") + ' km</small></div>' +
+      (price != null && abon ? '<div class="abon">' + abon + '</div>' : "") +
       ((p.stik || p.antalStik) ?
         '<div class="meta">' +
           (p.stik ? p.stik : "") +
@@ -590,9 +580,7 @@ function render(){
       '<div class="poprow">' +
         '<a class="popbtn" target="_blank" rel="noopener" href="https://www.google.com/maps/@?api=1&map_action=map&center=' +
           p.pos[0] + ',' + p.pos[1] + '&zoom=19&basemap=satellite">🛰️ Se luftfoto</a>' +
-        '<a class="popbtn" target="_blank" rel="noopener" href="https://map.monta.com/?lat=' +
-          p.pos[0] + '&lng=' + p.pos[1] + '&zoom=17">⚡ Monta</a>' +
-        (appHref ? '<a class="popbtn" target="_blank" rel="noopener" href="' + appHref + '">📱 Åbn ' + p.op.name + '</a>' : "") +
+        (kilde ? '<a class="popbtn" target="_blank" rel="noopener" href="' + kilde + '">💰 Prisdetaljer</a>' : "") +
       '</div></div>'
     );
     return m;
